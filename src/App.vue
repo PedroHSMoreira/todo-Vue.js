@@ -1,25 +1,42 @@
 <template>
   <div id="app">
     <h1>Tarefas</h1>
+    <TasksProgress :progress="progress"></TasksProgress>
     <NewTask @taskAdded="addTask" />
-    <TaskGrid :tasks="tasks" @taskDeleted="deleteTask" />
+    <TaskGrid :tasks="tasks" @taskDeleted="deleteTask" @taskChanged="toggleTaskChanged" />
   </div>
 </template>
 
 <script>
+import TasksProgress from "./components/TasksProgress";
 import TaskGrid from "./components/TaskGrid";
 import NewTask from "./components/NewTask";
 export default {
-  components: { TaskGrid, NewTask },
+  components: { TasksProgress, TaskGrid, NewTask },
   data() {
     return {
       tasks: []
     };
   },
+  watch: {
+    tasks: {
+      deep: true,
+      handler() {
+        localStorage.setItem("tasks", JSON.stringify(this.tasks));
+      }
+    }
+  },
+  computed: {
+    progress() {
+      const total = this.tasks.length;
+      const done = this.tasks.filter(t => !t.pending).length;
+      return Math.round((done / total) * 100) || 0;
+    }
+  },
   methods: {
     addTask(task) {
       const sameName = t => t.name === task.name;
-      const reallyNew = this.tasks.filter(sameName).length === 0;
+      const reallyNew = this.tasks.filter(sameName).length == 0;
       reallyNew &&
         this.tasks.push({
           name: task.name,
@@ -28,7 +45,14 @@ export default {
     },
     deleteTask(i) {
       this.tasks.splice(i, 1);
+    },
+    toggleTaskChanged(i) {
+      this.tasks[i].pending = !this.tasks[i].pending;
     }
+  },
+  created() {
+    const json = localStorage.getItem("tasks");
+    this.tasks = JSON.parse(json) || [];
   }
 };
 </script>
